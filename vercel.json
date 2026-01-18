@@ -1,0 +1,12 @@
+{
+    "functions": {
+        "app/**/*.ts": {
+            "maxDuration": 60
+        }
+    },
+    "outputFileTracingIncludes": {
+        "/app/**/*": [
+            "./node_modules/playwright/**/*"
+        ]
+    }
+}
