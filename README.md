@@ -84,30 +84,28 @@ npx tsx scripts/cli.ts scan https://example.com --output=report --format=both
 
 ## Deployment
 
-### Vercel (Recommended)
+## Deployment
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-org/ui-bug-detector)
+Since this application uses Playwright (browser automation), **Docker deployment is recommended**. Serverless platforms like Vercel often have size limits that block browser binaries.
 
-1. Connect your GitHub repository
-2. Vercel will auto-detect Next.js settings
-3. Deploy!
+### Option 1: Render (Recommended - Free Tier)
+1. Fork this repository
+2. Sign up at [render.com](https://render.com)
+3. Create a new **Web Service**
+4. Connect your GitHub repository
+5. Select **Docker** as the Runtime
+6. Click **Create Web Service**
 
-### Docker
+### Option 2: Railway
+1. Sign up at [railway.app](https://railway.app)
+2. Create a new Project from GitHubRepo
+3. Railway will automatically detect the `Dockerfile`
+4. Deploy!
 
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-RUN npx playwright install chromium --with-deps
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3000
-CMD ["npm", "start"]
-```
+### Option 3: Vercel (Advanced)
+If you must use Vercel:
+1. Ensure `postinstall` script is enabled (`npx playwright install chromium`)
+2. You may need a **Pro** plan as the Function size (~300MB) often exceeds the Free tier limit (250MB)
 
 ### Manual Deployment
 
