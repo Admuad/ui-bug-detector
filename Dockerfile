@@ -10,7 +10,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 
-FROM mcr.microsoft.com/playwright:v1.48.2-jammy AS runner
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
