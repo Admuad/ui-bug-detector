@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Debug & Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+logs/
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript (auto-generated)
+*.tsbuildinfo
+next-env.d.ts
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Scan reports (generated during testing)
+*-test.md
+*-test.json
+bug-report-*.md
+bug-report-*.json
+concero-*.md
+concero-*.json
+crawl-test.md
+crawl-test.json
+scan_report.md
+self-scan.md
+self-scan.json
+test-final.md
+test-final.json
+
+# Playwright
+playwright-report/
+test-results/
+
+# Training/Documentation files (not for production)
+claude.md
+output.txt
+test_output.txt
+test_stderr.txt
+test_stdout.txt
+typo_error.log
+build.log
+build_error.log
+
+# Temporary files
+*.tmp
+temp/

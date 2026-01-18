@@ -1,0 +1,16 @@
+{
+    "name": "UI Bug Detector",
+    "short_name": "BugDetector",
+    "description": "Automated UI Quality Assurance Tool",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#00C853",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

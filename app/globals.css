@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --card-bg: #ffffff;
+  --card-border: #000000;
+  --font-inter: 'Inter', sans-serif;
+  --color-brand: #00C853;
+  --color-brand-hover: #00E676;
+  --color-error: #D50000;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #ffffff;
+  --card-bg: #18181b;
+  --card-border: #3f3f46;
+}
+
+/* Minimalist Reset */
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Smooth Theme Transitions */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+/* Shimmer animation for progress indicators */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

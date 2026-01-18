@@ -1,0 +1,40 @@
+{
+  "name": "ui-bug-detector",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8080",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.23",
+    "axe-core": "^4.10.0",
+    "axe-playwright": "^2.2.2",
+    "clsx": "^2.1.1",
+    "dictionary-en-gb": "^3.0.0",
+    "dictionary-en-us": "^2.2.1",
+    "framer-motion": "^11.11.11",
+    "lucide-react": "^0.460.0",
+    "next": "15.0.3",
+    "next-themes": "^0.4.6",
+    "nspell": "^2.1.5",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "playwright": "^1.48.2",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
