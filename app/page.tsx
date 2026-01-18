@@ -132,46 +132,46 @@ export default function Home() {
     };
 
     return (
-        <main className="flex-1 flex flex-col items-center p-8 sm:p-20 font-[family-name:var(--font-inter)] min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-500">
+        <main className="flex-1 flex flex-col items-center px-4 py-8 sm:p-20 font-[family-name:var(--font-inter)] min-h-screen bg-white dark:bg-[#09090b] transition-colors duration-500">
             <ClientOnly>
                 {/* Theme Toggle */}
                 <div className="fixed top-6 right-6 z-50">
                     <ThemeToggle />
                 </div>
 
-                <div className={`max-w-4xl w-full flex flex-col items-center transition-all duration-700 ${result ? 'mt-8' : 'mt-[20vh]'}`}>
+                <div className={`max-w-4xl w-full flex flex-col items-center transition-all duration-700 ${result ? 'mt-4 sm:mt-8' : 'mt-16 sm:mt-[20vh]'}`}>
                     {/* Header Section */}
-                    <div className={`text-center space-y-4 mb-12 transition-all duration-700 ${result ? 'scale-90 opacity-80' : ''}`}>
-                        <h1 className="text-6xl font-black tracking-tighter uppercase relative inline-block text-black dark:text-white">
+                    <div className={`text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12 transition-all duration-700 px-4 ${result ? 'scale-90 opacity-80' : ''}`}>
+                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase relative inline-block text-black dark:text-white">
                             UI Bug Detector
-                            <span className="absolute -top-4 -right-12 rotate-12 bg-brand text-black text-xs px-2 py-1 font-mono font-bold border border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">Beta</span>
+                            <span className="absolute -top-2 -right-8 sm:-top-4 sm:-right-12 rotate-12 bg-brand text-black text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-mono font-bold border border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">Beta</span>
                         </h1>
-                        <p className="text-xl text-gray-500 dark:text-gray-400 font-medium max-w-lg mx-auto">
+                        <p className="text-base sm:text-xl text-gray-500 dark:text-gray-400 font-medium max-w-lg mx-auto">
                             Automated bug detection for vibecoders. Scan live sites or GitHub repos.
                         </p>
                     </div>
 
                     {/* Input Mode Toggle */}
-                    <div className="flex items-center gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <div className="flex items-center gap-1 sm:gap-2 mb-4 sm:mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
                         <button
                             onClick={() => setInputMode('url')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm uppercase tracking-wider transition-all ${inputMode === 'url'
+                            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-md font-bold text-xs sm:text-sm uppercase tracking-wider transition-all ${inputMode === 'url'
                                 ? 'bg-white dark:bg-gray-900 text-black dark:text-white shadow-sm'
                                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}
                         >
-                            <Globe size={16} />
-                            Website URL
+                            <Globe size={14} className="sm:w-4 sm:h-4" />
+                            <span className="hidden xs:inline">Website</span> URL
                         </button>
                         <button
                             onClick={() => setInputMode('github')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm uppercase tracking-wider transition-all ${inputMode === 'github'
+                            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-md font-bold text-xs sm:text-sm uppercase tracking-wider transition-all ${inputMode === 'github'
                                 ? 'bg-white dark:bg-gray-900 text-black dark:text-white shadow-sm'
                                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
                                 }`}
                         >
-                            <Github size={16} />
-                            GitHub Repo
+                            <Github size={14} className="sm:w-4 sm:h-4" />
+                            GitHub
                         </button>
                     </div>
 
@@ -214,19 +214,20 @@ export default function Home() {
                     )}
 
                     {/* Input Section */}
-                    <div className="w-full max-w-2xl relative group z-10">
+                    <div className="w-full max-w-2xl relative group z-10 px-4 sm:px-0">
                         <div className="absolute inset-0 bg-brand/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                         <form
                             onSubmit={handleScan}
-                            className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-white dark:bg-[#18181b] border-2 border-black dark:border-gray-700 rounded-lg overflow-visible shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(40,40,40,1)] transition-all duration-300"
+                            className="relative bg-white dark:bg-[#18181b] border-2 border-black dark:border-gray-700 rounded-lg overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(40,40,40,1)] sm:dark:shadow-[8px_8px_0px_0px_rgba(40,40,40,1)] transition-all duration-300"
                         >
-                            <div className="pl-6 text-gray-400">
-                                {inputMode === 'github' ? <Github size={24} /> : <Search size={24} />}
-                            </div>
+                            {/* Input Row */}
+                            <div className="flex items-center border-b border-gray-200 dark:border-gray-700">
+                                <div className="pl-4 sm:pl-6 text-gray-400 flex-shrink-0">
+                                    {inputMode === 'github' ? <Github size={20} /> : <Search size={20} />}
+                                </div>
 
-                            {inputMode === 'url' ? (
-                                <>
+                                {inputMode === 'url' ? (
                                     <input
                                         type="url"
                                         name="url"
@@ -235,47 +236,55 @@ export default function Home() {
                                         value={url}
                                         onChange={(e) => setUrl(e.target.value)}
                                         placeholder="https://example.com"
-                                        className="w-full p-6 outline-none text-xl font-mono placeholder:text-gray-300 bg-transparent text-black dark:text-white"
+                                        className="flex-1 min-w-0 p-4 sm:p-6 outline-none text-base sm:text-xl font-mono placeholder:text-gray-300 bg-transparent text-black dark:text-white"
                                         required
                                     />
-                                    <div className="flex items-center gap-2 pr-4 border-l border-gray-200 dark:border-gray-700 pl-4">
-                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                ) : (
+                                    <input
+                                        type="text"
+                                        name="repoUrl"
+                                        id="repo-url-input"
+                                        aria-label="GitHub repository URL to scan"
+                                        value={repoUrl}
+                                        onChange={(e) => setRepoUrl(e.target.value)}
+                                        placeholder="user/repo"
+                                        className="flex-1 min-w-0 p-4 sm:p-6 outline-none text-base sm:text-xl font-mono placeholder:text-gray-300 bg-transparent text-black dark:text-white"
+                                        required
+                                    />
+                                )}
+                            </div>
+
+                            {/* Options Row (URL mode only) */}
+                            {inputMode === 'url' && (
+                                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-zinc-900/50 border-b border-gray-200 dark:border-gray-700">
+                                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                                        <div className={`relative w-11 h-6 rounded-full transition-colors ${isDeepScan ? 'bg-brand' : 'bg-gray-300 dark:bg-gray-600'}`}>
                                             <input
                                                 type="checkbox"
                                                 checked={isDeepScan}
                                                 onChange={(e) => setIsDeepScan(e.target.checked)}
-                                                className="peer sr-only"
+                                                className="sr-only"
                                             />
-                                            <div className={`w-10 h-6 bg-gray-200 dark:bg-gray-700 rounded-full p-1 transition-colors ${isDeepScan ? 'bg-brand dark:bg-brand' : ''}`}>
-                                                <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isDeepScan ? 'translate-x-4' : ''}`} />
-                                            </div>
-                                            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 peer-checked:text-black dark:peer-checked:text-white">
-                                                Deep Scan
-                                            </span>
-                                        </label>
-                                    </div>
-                                </>
-                            ) : (
-                                <input
-                                    type="text"
-                                    name="repoUrl"
-                                    id="repo-url-input"
-                                    aria-label="GitHub repository URL to scan"
-                                    value={repoUrl}
-                                    onChange={(e) => setRepoUrl(e.target.value)}
-                                    placeholder="github.com/user/repo or user/repo"
-                                    className="w-full p-6 outline-none text-xl font-mono placeholder:text-gray-300 bg-transparent text-black dark:text-white"
-                                    required
-                                />
+                                            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isDeepScan ? 'translate-x-5' : ''}`} />
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                                            Deep Scan
+                                        </span>
+                                    </label>
+                                    <span className="text-xs text-gray-400">
+                                        {isDeepScan ? 'Multi-page crawl' : 'Single page'}
+                                    </span>
+                                </div>
                             )}
 
+                            {/* Submit Button */}
                             <button
                                 type="submit"
                                 disabled={isPending || Boolean(inputMode === 'github' && rateLimitInfo && !rateLimitInfo.allowed && !rateLimitInfo.hasToken)}
-                                className="bg-brand hover:bg-brand-hover text-black px-10 py-6 font-bold uppercase tracking-wider flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-l-2 border-black dark:border-gray-700"
+                                className="w-full bg-brand hover:bg-brand-hover text-black px-6 py-4 sm:py-5 font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isPending ? (
-                                    <><span className="hidden sm:inline">{scanStatus || 'Scanning'}</span><span className="sm:hidden">...</span> <Loader2 className="animate-spin" size={20} /></>
+                                    <><span>{scanStatus || 'Scanning'}</span> <Loader2 className="animate-spin" size={20} /></>
                                 ) : (
                                     <>Scan <ArrowRight size={20} /></>
                                 )}
