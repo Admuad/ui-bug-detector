@@ -18,11 +18,37 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
 
     // Aggregate bugs
     const allBugs = results.flatMap(r => r.bugs);
+    const [selectedBugIds, setSelectedBugIds] = useState<Set<string>>(new Set(allBugs.map(b => b.id)));
+
     const criticals = allBugs.filter(b => b.severity === 'critical');
     const majors = allBugs.filter(b => b.severity === 'major');
     const minors = allBugs.filter(b => b.severity === 'minor');
 
+    const toggleBugSelection = (id: string) => {
+        const next = new Set(selectedBugIds);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setSelectedBugIds(next);
+    };
+
+    const toggleCategorySelection = (bugIds: string[], select: boolean) => {
+        const next = new Set(selectedBugIds);
+        bugIds.forEach(id => {
+            if (select) next.add(id);
+            else next.delete(id);
+        });
+        setSelectedBugIds(next);
+    };
+
+    const selectAll = () => setSelectedBugIds(new Set(allBugs.map(b => b.id)));
+    const selectNone = () => setSelectedBugIds(new Set());
+
     const generateAIFriendlyReport = (format: 'markdown' | 'json' = 'markdown') => {
+        const selectedBugs = allBugs.filter(b => selectedBugIds.has(b.id));
+        const selectedCriticals = selectedBugs.filter(b => b.severity === 'critical');
+        const selectedMajors = selectedBugs.filter(b => b.severity === 'major');
+        const selectedMinors = selectedBugs.filter(b => b.severity === 'minor');
+
         const reportData = {
             metadata: {
                 generatedAt: new Date().toISOString(),
@@ -30,13 +56,14 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
                 version: '1.0.0',
                 overallScore: score,
                 pagesScanned: results.length,
-                totalBugs: allBugs.length,
-                critical: criticals.length,
-                major: majors.length,
-                minor: minors.length
+                totalBugsInResults: allBugs.length,
+                bugsInReport: selectedBugs.length,
+                critical: selectedCriticals.length,
+                major: selectedMajors.length,
+                minor: selectedMinors.length
             },
             instructions: 'This report is optimized for AI coding agents. Each bug includes actionable fix suggestions. Process bugs by severity (critical first).',
-            bugs: allBugs.map((b, i) => ({
+            bugs: selectedBugs.map((b, i) => ({
                 id: i + 1,
                 code: b.code,
                 name: b.friendlyName || b.code,
@@ -60,13 +87,14 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
         let md = `# UI Bug Report\n\n`;
         md += `> **Generated:** ${reportData.metadata.generatedAt}\n`;
         md += `> **Score:** ${score}/100\n`;
-        md += `> **Pages Scanned:** ${results.length}\n\n`;
+        md += `> **Pages Scanned:** ${results.length}\n`;
+        md += `> **Bugs Exported:** ${selectedBugs.length} / ${allBugs.length}\n\n`;
         md += `---\n\n`;
         md += `## Summary\n\n`;
         md += `| Severity | Count |\n|----------|-------|\n`;
-        md += `| 🔴 Critical | ${criticals.length} |\n`;
-        md += `| 🟠 Major | ${majors.length} |\n`;
-        md += `| 🟡 Minor | ${minors.length} |\n\n`;
+        md += `| 🔴 Critical | ${selectedCriticals.length} |\n`;
+        md += `| 🟠 Major | ${selectedMajors.length} |\n`;
+        md += `| 🟡 Minor | ${selectedMinors.length} |\n\n`;
         md += `---\n\n`;
         md += `## AI Agent Instructions\n\n`;
         md += `Process the bugs below in order of severity. Each bug includes a suggested fix.\n`;
@@ -78,13 +106,12 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
         let bugCounter = 1;
 
         for (const sev of severityOrder) {
-            const bugs = allBugs.filter(b => b.severity === sev);
+            const bugs = selectedBugs.filter(b => b.severity === sev);
             if (bugs.length === 0) continue;
 
             const icon = sev === 'critical' ? '🔴' : sev === 'major' ? '🟠' : '🟡';
             md += `## ${icon} ${sev.charAt(0).toUpperCase() + sev.slice(1)} Issues\n\n`;
 
-            // Smart Consolidation for Report
             const groupedByCode = bugs.reduce((acc, bug) => {
                 if (!acc[bug.code]) acc[bug.code] = [];
                 acc[bug.code].push(bug);
@@ -92,7 +119,6 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
             }, {} as Record<string, Bug[]>);
 
             Object.entries(groupedByCode).forEach(([code, codeBugs]) => {
-                // If we have more than 5 of the same type (e.g. A11Y_REGION), consolidate them
                 if (codeBugs.length > 5) {
                     const sample = codeBugs[0];
                     md += `### ${bugCounter++}. ${sample.friendlyName || sample.code} (x${codeBugs.length})\n\n`;
@@ -106,7 +132,6 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
                     md += `- **Example Location:** ${sample.locationDescription || 'Unknown'}\n`;
                     md += `\n`;
                 } else {
-                    // List individually
                     codeBugs.forEach(b => {
                         md += `### ${bugCounter++}. ${b.friendlyName || b.code}\n\n`;
                         md += `- **Code:** \`${b.code}\`\n`;
@@ -128,17 +153,19 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
     };
 
     const handleDownloadReport = (format: 'markdown' | 'json' = 'markdown') => {
+        if (selectedBugIds.size === 0) {
+            toast.error("No bugs selected for export");
+            return;
+        }
         const content = generateAIFriendlyReport(format);
         const mimeType = format === 'json' ? 'application/json' : 'text/markdown';
         const ext = format === 'json' ? 'json' : 'md';
 
-        // Generate filename from domain
         let domain = 'scan-report';
         try {
             const urlObj = new URL(results[0]?.url || '');
             domain = urlObj.hostname.replace(/[^a-z0-9-]/gi, '-').toLowerCase();
         } catch (e) {
-            // Fallback for non-URL strings (e.g. GitHub file paths)
             domain = (results[0]?.url || 'scan-report').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
         }
 
@@ -154,7 +181,7 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.success(`${format.toUpperCase()} report downloaded`);
+        toast.success(`${format.toUpperCase()} report downloaded (${selectedBugIds.size} bugs)`);
     };
 
     return (
@@ -189,23 +216,42 @@ export function ScanResults({ result }: { result: ScanResult | CrawlResult }) {
                         <Badge count={majors.length} label="Major" color="bg-orange-500 text-white" />
                         <Badge count={minors.length} label="Minor" color="bg-yellow-400 text-black" />
                     </div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-300 text-sm">
-                        Found {allBugs.length} issues across {results.length} page{results.length !== 1 ? 's' : ''}.
-                    </p>
+                    <div className="mt-4 flex items-center justify-between">
+                        <p className="text-gray-600 dark:text-gray-300 text-sm">
+                            Found {allBugs.length} issues. **{selectedBugIds.size} selected for export.**
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={selectAll} className="text-[10px] uppercase font-bold text-brand hover:underline">Select All</button>
+                            <button onClick={selectNone} className="text-[10px] uppercase font-bold text-gray-500 hover:underline">Deselect All</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Results Grouped by Page */}
             <div className="space-y-6">
                 {results.map((pageResult, i) => (
-                    <PageResultGroup key={i} result={pageResult} isDefaultOpen={i === 0} />
+                    <PageResultGroup
+                        key={i}
+                        result={pageResult}
+                        isDefaultOpen={i === 0}
+                        selectedBugIds={selectedBugIds}
+                        onToggleBug={toggleBugSelection}
+                        onToggleCategory={toggleCategorySelection}
+                    />
                 ))}
             </div>
         </div>
     );
 }
 
-function PageResultGroup({ result, isDefaultOpen }: { result: ScanResult, isDefaultOpen: boolean }) {
+function PageResultGroup({ result, isDefaultOpen, selectedBugIds, onToggleBug, onToggleCategory }: {
+    result: ScanResult,
+    isDefaultOpen: boolean,
+    selectedBugIds: Set<string>,
+    onToggleBug: (id: string) => void,
+    onToggleCategory: (ids: string[], select: boolean) => void
+}) {
     const [isOpen, setIsOpen] = useState(isDefaultOpen);
     const criticalCount = result.bugs.filter(b => b.severity === 'critical').length;
     const majorCount = result.bugs.filter(b => b.severity === 'major').length;
@@ -271,7 +317,14 @@ function PageResultGroup({ result, isDefaultOpen }: { result: ScanResult, isDefa
                                 </div>
                             ) : (
                                 Object.entries(groupedBugs).map(([category, bugs]) => (
-                                    <CategoryGroup key={category} category={category} bugs={bugs} />
+                                    <CategoryGroup
+                                        key={category}
+                                        category={category}
+                                        bugs={bugs}
+                                        selectedBugIds={selectedBugIds}
+                                        onToggleBug={onToggleBug}
+                                        onToggleCategory={onToggleCategory}
+                                    />
                                 ))
                             )}
                         </div>
@@ -282,18 +335,37 @@ function PageResultGroup({ result, isDefaultOpen }: { result: ScanResult, isDefa
     );
 }
 
-function CategoryGroup({ category, bugs }: { category: string, bugs: Bug[] }) {
+function CategoryGroup({ category, bugs, selectedBugIds, onToggleBug, onToggleCategory }: {
+    category: string,
+    bugs: Bug[],
+    selectedBugIds: Set<string>,
+    onToggleBug: (id: string) => void,
+    onToggleCategory: (ids: string[], select: boolean) => void
+}) {
     const [isOpen, setIsOpen] = useState(true);
+    const selectedInCategory = bugs.filter(b => selectedBugIds.has(b.id)).length;
+    const allSelected = selectedInCategory === bugs.length;
 
     return (
         <div className="space-y-2">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 w-full text-left font-bold text-sm uppercase tracking-wider text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white transition-colors py-2"
-            >
-                {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                {category} ({bugs.length})
-            </button>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-1">
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center gap-2 font-bold text-sm uppercase tracking-wider text-gray-400 dark:text-gray-500 hover:text-black dark:hover:text-white transition-colors py-2"
+                >
+                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {category} ({bugs.length})
+                </button>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">{selectedInCategory} / {bugs.length} Selected</span>
+                    <button
+                        onClick={() => onToggleCategory(bugs.map(b => b.id), !allSelected)}
+                        className={`text-[10px] font-bold uppercase py-0.5 px-2 rounded border ${allSelected ? 'bg-zinc-100 dark:bg-zinc-800 text-gray-500 border-gray-200 dark:border-zinc-700' : 'bg-brand/10 text-brand border-brand/20'}`}
+                    >
+                        {allSelected ? 'Deselect Type' : 'Select Type'}
+                    </button>
+                </div>
+            </div>
 
             <AnimatePresence>
                 {isOpen && (
@@ -303,7 +375,14 @@ function CategoryGroup({ category, bugs }: { category: string, bugs: Bug[] }) {
                         exit={{ height: 0, opacity: 0 }}
                         className="space-y-3 pl-2 sm:pl-4 overflow-hidden"
                     >
-                        {bugs.map(bug => <BugCard key={bug.id} bug={bug} />)}
+                        {bugs.map(bug => (
+                            <BugCard
+                                key={bug.id}
+                                bug={bug}
+                                isSelected={selectedBugIds.has(bug.id)}
+                                onToggle={() => onToggleBug(bug.id)}
+                            />
+                        ))}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -311,7 +390,7 @@ function CategoryGroup({ category, bugs }: { category: string, bugs: Bug[] }) {
     );
 }
 
-function BugCard({ bug }: { bug: Bug }) {
+function BugCard({ bug, isSelected, onToggle }: { bug: Bug, isSelected: boolean, onToggle: () => void }) {
     const [expanded, setExpanded] = React.useState(false);
     const icon = bug.severity === 'critical' ? <XCircle /> : bug.severity === 'major' ? <AlertTriangle /> : <Info />;
     const borderClass = bug.severity === 'critical' ? 'border-l-[6px] border-l-red-500' : bug.severity === 'major' ? 'border-l-[6px] border-l-orange-500' : 'border-l-[6px] border-l-yellow-400';
@@ -339,10 +418,22 @@ Details: ${bug.details || 'N/A'}
     return (
         <motion.div
             layout
-            className={`bg-white dark:bg-[#27272a] border border-gray-200 dark:border-zinc-700 rounded-sm p-4 shadow-sm flex gap-4 ${borderClass} cursor-pointer hover:shadow-md transition-all`}
+            className={`bg-white dark:bg-[#27272a] border ${isSelected ? 'border-brand dark:border-brand/40 ring-1 ring-brand/20' : 'border-gray-200 dark:border-zinc-700'} rounded-sm p-4 shadow-sm flex gap-4 ${borderClass} cursor-pointer hover:shadow-md transition-all relative group`}
             onClick={() => setExpanded(!expanded)}
         >
-            <div className={`mt-1 shrink-0 ${bug.severity === 'critical' ? 'text-red-500' : bug.severity === 'major' ? 'text-orange-500' : 'text-yellow-400'}`}>{icon}</div>
+            <div
+                className="flex flex-col items-center gap-3 pt-1"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={onToggle}
+                    className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand accent-brand cursor-pointer"
+                />
+                <div className={`shrink-0 ${bug.severity === 'critical' ? 'text-red-500' : bug.severity === 'major' ? 'text-orange-500' : 'text-yellow-400'}`}>{icon}</div>
+            </div>
+
             <div className="overflow-hidden w-full">
                 <div className="flex items-center gap-2 mb-1 justify-between">
                     <div className="flex flex-col items-start gap-1">

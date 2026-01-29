@@ -135,7 +135,7 @@ export async function checkTypo(page: Page, customWhitelist?: string[]): Promise
     }
 
     // 2. Extract visible text from the page
-    const textNodesData: { text: string; selector: string; rect: any }[] = await page.evaluate(`
+    const textNodesData: { text: string; selector: string; rect: any; name: string; location: string }[] = await page.evaluate(`
         (function() {
             var walker = document.createTreeWalker(
                 document.body,
@@ -171,6 +171,8 @@ export async function checkTypo(page: Page, customWhitelist?: string[]): Promise
                          var rect = parent.getBoundingClientRect();
                          nodes.push({
                              text: text,
+                             name: window.SemanticResolver.getFriendlyName(parent),
+                             location: window.SemanticResolver.getLocationDescription(parent),
                              selector: parent.tagName.toLowerCase(),
                              rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height }
                          });
@@ -204,10 +206,11 @@ export async function checkTypo(page: Page, customWhitelist?: string[]): Promise
                     id: crypto.randomUUID(),
                     code: 'TYPO',
                     severity: 'minor',
-                    message: `Possible typo detected: "${cleanWord}".`,
+                    message: `Possible typo detected in "${item.name}": "${cleanWord}".`,
                     details: `The word "${cleanWord}" was not found in the dictionary. Did you mean: ${suggestions || 'unknown'}?`,
                     expectedBehavior: 'Correct the spelling or add to custom dictionary if it is a brand name.',
-                    locationDescription: `Text inside <${item.selector}>`,
+                    friendlyName: item.name,
+                    locationDescription: item.location,
                     boundingBox: item.rect
                 });
                 seenTypos.add(word.toLowerCase());

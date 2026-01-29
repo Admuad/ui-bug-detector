@@ -56,10 +56,11 @@ export async function checkLayout(page: Page): Promise<Bug[]> {
         issues.push({
           code: 'LAYOUT_OVERFLOW',
           severity: 'major',
-          message: \`Page content overflows horizontally (\${document.documentElement.scrollWidth}px > \${window.innerWidth}px).\`,
-          details: \`The page content width (\${document.documentElement.scrollWidth}px) exceeds the viewport width (\${window.innerWidth}px). This causes unwanted horizontal scrolling on mobile devices.\`,
+          message: 'Page content overflows horizontally (' + document.documentElement.scrollWidth + 'px > ' + window.innerWidth + 'px).',
+          details: 'The page content width (' + document.documentElement.scrollWidth + 'px) exceeds the viewport width (' + window.innerWidth + 'px). This causes unwanted horizontal scrolling on mobile devices.',
           expectedBehavior: 'Content should fit within the viewport width without horizontal scrolling (unless intended, e.g., carousel).',
-          locationDescription: 'Global Page Layout',
+          friendlyName: 'Page Layout',
+          locationDescription: 'Global Site Layout',
           suggestedFix: 'Find elements with fixed widths wider than the viewport, or content that extends beyond its container. Check for elements with "overflow: visible" that contain wide children.'
         });
       }
@@ -107,24 +108,26 @@ export async function checkLayout(page: Page): Promise<Bug[]> {
           
           // Require significant overlap (at least 15px in each dimension)
           if (x_overlap > 15 && y_overlap > 15) {
-             const aText = a.node.textContent?.trim().slice(0,30) || '';
-             const bText = b.node.textContent?.trim().slice(0,30) || '';
+             const aName = window.SemanticResolver.getFriendlyName(a.node);
+             const bName = window.SemanticResolver.getFriendlyName(b.node);
+             const location = window.SemanticResolver.getLocationDescription(a.node);
              
-             // Skip if the texts are very similar (likely same element captured twice)
-             if (aText === bText) continue;
+             // Skip if the names are identical (likely same element or very similar siblings)
+             if (aName === bName && a.node.tagName === b.node.tagName) continue;
              
              overlapIssues.push({
                code: 'VISUAL_OVERLAP',
                severity: 'major',
-               message: \`Overlapping text elements detected: "\${aText}..." and "\${bText}..."\`,
-               details: \`Two text elements are occupying the same space (overlap area: \${Math.round(x_overlap * y_overlap)}px²). This makes text unreadable.\`,
-               expectedBehavior: 'Text elements should have sufficient spacing and not overlap each other.',
-               locationDescription: \`Between <\${a.node.tagName}> and <\${b.node.tagName}>\`,
+               message: '\"' + aName + '\" and \"' + bName + '\" are overlapping.',
+               details: 'Two elements are occupying the same space (overlap area: ' + Math.round(x_overlap * y_overlap) + 'px²). This makes the UI look broken and text unreadable.',
+               expectedBehavior: 'Elements should have sufficient spacing and not overlap each other unless intended.',
+               friendlyName: aName + ' / ' + bName,
+               locationDescription: location,
                selector: a.node.tagName, 
                boundingBox: {
                  x: a.rect.left, y: a.rect.top, width: a.rect.width, height: a.rect.height
                },
-               suggestedFix: 'Adjust element positions or z-index. Ensure text elements have proper spacing and do not overlap.'
+               suggestedFix: 'Adjust margin, padding, or absolute positioning. Ensure containers have enough height/width for their children.'
              });
              
              // Limit overlap issues to prevent flooding
@@ -160,26 +163,28 @@ export async function checkLayout(page: Page): Promise<Bug[]> {
               }
               
               clippedCount++;
+              const name = window.SemanticResolver.getFriendlyName(el);
+              const location = window.SemanticResolver.getLocationDescription(el);
+
               issues.push({
                  code: 'LAYOUT_CLIPPED',
                  severity: 'major',
-                 message: \`Content is clipped or scrollable within <\${el.tagName.toLowerCase()}>.\`,
-                 details: \`The element content size (\${el.scrollWidth}x\${el.scrollHeight}) exceeds its visible container size (\${el.clientWidth}x\${el.clientHeight}) and is being clipped. Unless this is a scrollable area, it looks broken.\`,
-                 expectedBehavior: 'Expand the container or wrap text to ensure all content is visible.',
-                 locationDescription: \`Element: <\${el.tagName.toLowerCase()}>\` + (el.id ? \`#\${el.id}\` : '') + (el.getAttribute('class') ? \`.\${el.getAttribute('class').split(' ')[0]}\` : ''),
+                 message: '\"' + name + '\" content is clipped or cut off.',
+                 details: 'The element content size (' + el.scrollWidth + 'x' + el.scrollHeight + ') exceeds its visible container size (' + el.clientWidth + 'x' + el.clientHeight + '). This usually results in text being cut off mid-sentence.',
+                 expectedBehavior: 'Increase container dimensions or allow text wrapping to ensure all content is visible.',
+                 friendlyName: name,
+                 locationDescription: location,
                  elementHtml: el.outerHTML.slice(0, 100),
-                 suggestedFix: 'Increase the container width/height, add text wrapping (word-wrap: break-word), or ensure the content fits within its container.'
+                 suggestedFix: 'Increase the container height/width, or check if \"fine-grained\" overflow settings are hiding content prematurely.'
               });
            }
         }
       });
 
-      // 4. Check for Cramped Text (Insufficient Padding) - REDUCED SENSITIVITY
-      treeWalker.currentNode = document.body; // Reset walker
-      const textNodeIter = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      
-      let crampedChecked = 0;
+      // 4. Check for Cramped Text (Insufficient Padding)
       const crampedIssues = [];
+      const textNodeIter = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let crampedChecked = 0;
       
       while(textNodeIter.nextNode() && crampedChecked < 200) {
          crampedChecked++;
@@ -215,22 +220,23 @@ export async function checkLayout(page: Page): Promise<Bug[]> {
          const paddingBottom = parentRect.bottom - rect.bottom;
          
          if (paddingLeft < 3 || paddingRight < 3 || paddingTop < 3 || paddingBottom < 3) {
-             const textPreview = node.textContent?.trim().slice(0, 40) + '...' || 'Text';
+             const name = window.SemanticResolver.getFriendlyName(parent);
+             const location = window.SemanticResolver.getLocationDescription(parent);
 
              crampedIssues.push({
                  code: 'LAYOUT_CRAMPED',
                  severity: 'minor',
-                 message: \`Text is too close to the edge (Cramped UI).\`,
-                 details: \`Text content has insufficient padding (<4px) from its container edges. It looks compressed and unprofessional. Found: L:\${Math.round(paddingLeft)}px, R:\${Math.round(paddingRight)}px, T:\${Math.round(paddingTop)}px, B:\${Math.round(paddingBottom)}px\`,
-                 expectedBehavior: 'Increase padding to at least 8px-12px for better visual breathing room.',
-                 locationDescription: \`Text: "\${textPreview}" (in <\${parent.tagName.toLowerCase()}>)\`,
+                 message: 'Text in \"' + name + '\" is too close to its container edges.',
+                 details: 'The text content has insufficient breathing room (<4px padding). This makes the UI feel crowded. Found: L:' + Math.round(paddingLeft) + 'px, R:' + Math.round(paddingRight) + 'px, T:' + Math.round(paddingTop) + 'px, B:' + Math.round(paddingBottom) + 'px',
+                 expectedBehavior: 'Add at least 8-12px of padding to elements with borders or backgrounds.',
+                 friendlyName: name,
+                 locationDescription: location,
                  elementHtml: parent.outerHTML.slice(0, 200),
                  suggestedFix: 'Add padding to the container element: padding: 8px 12px; or similar.'
              });
          }
       }
       
-      // Limit cramped issues to prevent flooding
       issues.push(...crampedIssues.slice(0, 5));
 
       return issues;

@@ -9,6 +9,7 @@ import { checkVisual } from './checks/visual';
 import { checkForms } from './checks/cross-page';
 import { checkNavigation } from './checks/navigation';
 import { normalizeUrl } from './url-utils';
+import { semanticResolverScript } from './semantic-resolver';
 
 const DEFAULT_VIEWPORTS: Viewport[] = [
     { width: 1440, height: 900, label: 'Desktop' },
@@ -82,6 +83,10 @@ export class Detector {
                     throw navError;
                 }
                 totalLoadTime += (Date.now() - startTime);
+
+                // 2.5 Inject Semantic Resolver
+                await page.addInitScript(semanticResolverScript);
+                await page.evaluate(semanticResolverScript); // Also run it for the current page state
 
                 // Get DOM size
                 if (vp === viewports[0]) {
@@ -191,12 +196,33 @@ export class Detector {
                     });
                 });
 
-                // Extract internal links for crawler (only from Desktop/first viewport)
-                if (vp === viewports[0]) {
-                    discoveredLinks = await this.extractLinks(page);
-                }
+                // 5. AI Enrichment Pass (window.ai)
+                // This converts heuristic names/locations into natural human descriptions
+                const enrichedBugs = await page.evaluate(`
+                    (async function() {
+                        if (typeof window.SemanticResolver === 'undefined') return [];
+                        const bugsToEnrich = ${JSON.stringify(allBugs.filter(b => b.pageUrl === currentUrl))};
+                        
+                        const results = [];
+                        for (const bug of bugsToEnrich) {
+                            try {
+                                const enriched = await window.SemanticResolver.enrichWithAI(bug);
+                                results.push(enriched);
+                            } catch (e) {
+                                results.push(bug); // Fallback to original
+                            }
+                        }
+                        return results;
+                    })()
+                `).catch(() => null);
 
-                consoleErrorsCount = consoleErrors.length;
+                if (enrichedBugs && Array.isArray(enrichedBugs)) {
+                    // Update the bugs in allBugs for this current URL
+                    enrichedBugs.forEach(eb => {
+                        const idx = allBugs.findIndex(b => b.id === eb.id);
+                        if (idx !== -1) allBugs[idx] = eb;
+                    });
+                }
 
                 await context.close();
             }

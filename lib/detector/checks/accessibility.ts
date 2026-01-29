@@ -52,9 +52,7 @@ export async function checkAccessibility(page: Page): Promise<Bug[]> {
           (async function() {
               const axeConfig = {
                   rules: {
-                      // Reduce noise from layout/region rules for SPAs
                       'region': { enabled: true },
-                      // These are often false positives in modern frameworks
                       'landmark-complementary-is-top-level': { enabled: false },
                       'landmark-unique': { enabled: false }
                   }
@@ -62,29 +60,28 @@ export async function checkAccessibility(page: Page): Promise<Bug[]> {
               
               const results = await window.axe.run(document, axeConfig);
               
-              // Filter out violations on decorative/animating elements
+              // Filter and ENRICH violations with semantic data
               results.violations = results.violations.map(violation => {
                   violation.nodes = violation.nodes.filter(node => {
                       try {
                           if (!node.target || node.target.length === 0) return true;
-                          
                           const selector = node.target[node.target.length - 1];
                           const el = document.querySelector(selector);
-                          
                           if (!el) return true;
                           
                           const style = window.getComputedStyle(el);
-                          
-                          // Skip purely decorative elements
                           if (style.pointerEvents === 'none') return false;
                           if (style.animationName !== 'none' && style.animationName !== '') return false;
                           if (el.className && typeof el.className === 'string' && el.className.includes('animate-')) return false;
                           if (el.getAttribute('aria-hidden') === 'true') return false;
                           if (el.getAttribute('role') === 'presentation' || el.getAttribute('role') === 'none') return false;
                           
-                          // Skip very small elements (likely icons/decoration)
                           const rect = el.getBoundingClientRect();
                           if (rect.width < 5 || rect.height < 5) return false;
+                          
+                          // Attach semantic info to node for enrichment
+                          node.friendlyName = window.SemanticResolver.getFriendlyName(el);
+                          node.locationDescription = window.SemanticResolver.getLocationDescription(el);
                           
                           return true;
                       } catch (e) {
@@ -101,18 +98,11 @@ export async function checkAccessibility(page: Page): Promise<Bug[]> {
         const bugs: Bug[] = [];
         const violationCounts: Map<string, number> = new Map();
 
-        // First pass: count violations per rule
-        for (const v of (results as any).violations) {
-            const count = v.nodes.length;
-            violationCounts.set(v.id, count);
-        }
-
-        // Second pass: create bugs with grouping for repetitive violations
+        // Second pass: create bugs with enrichment
         for (const v of (results as any).violations) {
             const nodeCount = v.nodes.length;
             const ruleId = v.id;
 
-            // For rules with many violations, create a single summary bug
             if (nodeCount > 3 && (ruleId === 'region' || ruleId === 'landmark-one-main' || ruleId === 'duplicate-id-aria')) {
                 bugs.push({
                     id: crypto.randomUUID(),
@@ -121,34 +111,35 @@ export async function checkAccessibility(page: Page): Promise<Bug[]> {
                     message: `${v.help} (${nodeCount} elements affected)`,
                     details: `${v.description}\n\n${nodeCount} elements on the page violate this rule.`,
                     expectedBehavior: `Fix the issue: ${v.help}`,
-                    locationDescription: `${nodeCount} elements across the page`,
+                    locationDescription: `Multiple locations across the page`,
                     wcagCriteria: WCAG_MAPPING[ruleId] || '',
                     suggestedFix: FIX_SUGGESTIONS[ruleId] || 'Review the elements and fix according to WCAG guidelines.',
                     friendlyName: v.help.split(' (')[0]
                 });
             } else {
-                // Create individual bugs (up to a limit per rule)
                 const maxPerRule = 5;
                 const nodesToReport = v.nodes.slice(0, maxPerRule);
 
                 for (const node of nodesToReport) {
+                    const name = node.friendlyName || v.help.split(' (')[0];
+                    const loc = node.locationDescription || 'on the page';
+
                     bugs.push({
                         id: crypto.randomUUID(),
                         code: `A11Y_${ruleId.toUpperCase().replace(/-/g, '_')}`,
                         severity: v.impact === 'critical' || v.impact === 'serious' ? 'major' : 'minor',
-                        message: `${v.help} (${v.id})`,
+                        message: `"${name}" fails ${v.help} check.`,
                         details: v.description,
                         expectedBehavior: `Fix the issue: ${v.help}`,
-                        locationDescription: `Selector: ${node.target.join(', ')}`,
+                        locationDescription: loc,
                         elementHtml: node.html,
                         selector: node.target[0],
                         wcagCriteria: WCAG_MAPPING[ruleId] || '',
                         suggestedFix: FIX_SUGGESTIONS[ruleId] || 'Review the element and fix according to WCAG guidelines.',
-                        friendlyName: v.help.split(' (')[0]
+                        friendlyName: name
                     });
                 }
 
-                // Add summary if we truncated
                 if (v.nodes.length > maxPerRule) {
                     bugs.push({
                         id: crypto.randomUUID(),
