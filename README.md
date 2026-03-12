@@ -1,10 +1,9 @@
 # UI Bug Detector
 
-> 🔍 Enterprise-grade automated UI quality assurance tool
+> 🔍 Automated UI quality assurance tool
 
 Detect UI bugs, accessibility issues, and visual defects across your entire website. Powered by Playwright and axe-core for comprehensive automated testing.
 
-![Score: 40/100](https://img.shields.io/badge/Score-40%2F100-orange)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black)
 ![Playwright](https://img.shields.io/badge/Playwright-1.48-green)
 
@@ -31,7 +30,7 @@ Detect UI bugs, accessibility issues, and visual defects across your entire webs
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/ui-bug-detector.git
+git clone https://github.com/Admuad/ui-bug-detector.git
 cd ui-bug-detector
 
 # Install dependencies
@@ -47,7 +46,7 @@ npx playwright install chromium
 npm run dev
 ```
 
-Open [http://localhost:8080](http://localhost:8080)
+Open [http://localhost:3000](http://localhost:3000)
 
 ### Production Build
 
@@ -81,8 +80,6 @@ npx tsx scripts/cli.ts scan https://example.com --output=report --format=both
 | 0 | Pass - No critical/major issues |
 | 1 | Warn - Major issues found |
 | 2 | Fail - Critical issues found |
-
-## Deployment
 
 ## Deployment
 
