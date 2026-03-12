@@ -1,4 +1,4 @@
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser, Page, BrowserContextOptions } from 'playwright';
 import { ScanResult, Bug, DetectorConfig, Viewport, Severity } from './types';
 import { checkLayout } from './checks/layout';
 import { checkInteraction } from './checks/interaction';
@@ -39,7 +39,7 @@ export class Detector {
                 console.log(`[Detector] Scanning viewport: ${vp.label} (${vp.width}x${vp.height})`);
 
                 // Configure context for mobile or desktop
-                const contextOptions: any = {
+                const contextOptions: BrowserContextOptions = {
                     viewport: { width: vp.width, height: vp.height },
                     deviceScaleFactor: vp.deviceScaleFactor || (vp.isMobile ? 3 : 1),
                     isMobile: vp.isMobile || false,
@@ -78,8 +78,8 @@ export class Detector {
                     await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
                         console.log(`[Detector] Network still active, proceeding with scan`);
                     });
-                } catch (navError: any) {
-                    console.error(`[Detector] Navigation error:`, navError.message);
+                } catch (navError: unknown) {
+                    console.error(`[Detector] Navigation error:`, navError instanceof Error ? navError.message : navError);
                     throw navError;
                 }
                 totalLoadTime += (Date.now() - startTime);
@@ -88,9 +88,14 @@ export class Detector {
                 await page.addInitScript(semanticResolverScript);
                 await page.evaluate(semanticResolverScript); // Also run it for the current page state
 
-                // Get DOM size
+                // Get DOM size and extract links (first viewport only)
                 if (vp === viewports[0]) {
                     domSize = await page.evaluate(() => document.querySelectorAll('*').length);
+                    try {
+                        discoveredLinks = await this.extractLinks(page);
+                    } catch (e) {
+                        console.error('[Detector] Link extraction failed:', e);
+                    }
                 }
 
                 // 3. Capture Screenshot (re-enabled with size limits)
@@ -149,7 +154,7 @@ export class Detector {
                     try {
                         const typoBugs = await checkTypo(page, config.customWhitelist);
                         allBugs.push(...this.limitAndTagBugs(typoBugs, vp.label, currentUrl, maxBugs));
-                    } catch (e: any) {
+                    } catch (e) {
                         console.error("[Detector] Typo check failed:", e);
                     }
                 }
@@ -181,6 +186,7 @@ export class Detector {
                 }
 
                 // Add Console Errors as bugs (limited)
+                consoleErrorsCount += consoleErrors.length;
                 consoleErrors.slice(0, 5).forEach(err => {
                     allBugs.push({
                         id: crypto.randomUUID(),
@@ -508,4 +514,149 @@ function getFriendlyName(code: string): string {
         'FONT_LOADING': 'Font Loading Issue'
     };
     return map[code] || code.replace(/_/g, ' ').replace(/A11Y /i, '');
+}
+
+// ---------------------------------------------------------------------------
+// Exported helpers — extracted from Detector private methods so they can be
+// unit-tested without spinning up a browser.
+// ---------------------------------------------------------------------------
+
+/** @internal */
+export function _calculateScore(bugs: Bug[]): number {
+    if (bugs.length === 0) return 100;
+
+    let totalPenalty = 0;
+    const penaltyByCode: Map<string, number> = new Map();
+
+    const basePenalty: Record<Severity, number> = {
+        critical: 12,
+        major: 6,
+        minor: 2,
+        optimization: 1
+    };
+
+    const maxPenaltyPerType: Record<Severity, number> = {
+        critical: 30,
+        major: 20,
+        minor: 10,
+        optimization: 5
+    };
+
+    for (const bug of bugs) {
+        const code = bug.code;
+        const currentCodePenalty = penaltyByCode.get(code) || 0;
+        const maxForType = maxPenaltyPerType[bug.severity];
+
+        if (currentCodePenalty < maxForType) {
+            const count = penaltyByCode.has(code) ? 1 : 0;
+            const diminishingFactor = 1 / (1 + count * 0.3);
+            const penalty = basePenalty[bug.severity] * diminishingFactor;
+            const actualPenalty = Math.min(penalty, maxForType - currentCodePenalty);
+            penaltyByCode.set(code, currentCodePenalty + actualPenalty);
+            totalPenalty += actualPenalty;
+        }
+    }
+
+    const globalMaxPenalty = 70;
+    const adjustedPenalty = Math.min(totalPenalty, globalMaxPenalty);
+    return Math.max(0, Math.round(100 - adjustedPenalty));
+}
+
+/** @internal */
+export function _deduplicateBugs(bugs: Bug[]): Bug[] {
+    const seen = new Map<string, Bug>();
+
+    for (const bug of bugs) {
+        const messageCore = bug.message.replace(/\[Desktop\]|\[Mobile\]/g, '').trim().slice(0, 50);
+        const key = `${bug.code}|${messageCore}|${bug.selector || ''}`;
+
+        if (!seen.has(key)) {
+            seen.set(key, bug);
+        }
+    }
+
+    return Array.from(seen.values());
+}
+
+/** @internal */
+export function _addPriorityScores(bugs: Bug[]): Bug[] {
+    const severityWeight: Record<Severity, number> = {
+        critical: 40,
+        major: 25,
+        minor: 10,
+        optimization: 5
+    };
+
+    const impactMultiplier: Record<string, number> = {
+        'LAYOUT_OVERFLOW': 1.5,
+        'VISUAL_OVERLAP': 1.3,
+        'A11Y_COLOR-CONTRAST': 1.4,
+        'UNCLICKABLE_ELEMENT': 1.8,
+        'NAV_BROKEN_LINK': 1.6,
+        'NAV_SERVER_ERROR': 2.0,
+        'CONSOLE_ERROR': 1.2,
+        'MEDIA_BROKEN': 1.4,
+        'FORM_MISSING_LABEL': 1.3,
+    };
+
+    const codeFrequency = new Map<string, number>();
+    for (const bug of bugs) {
+        codeFrequency.set(bug.code, (codeFrequency.get(bug.code) || 0) + 1);
+    }
+
+    return bugs.map(bug => {
+        const baseScore = severityWeight[bug.severity];
+        const multiplier = impactMultiplier[bug.code] || 1.0;
+        const frequency = codeFrequency.get(bug.code) || 1;
+        const frequencyAdjustment = 1 / Math.sqrt(frequency);
+        const rawScore = baseScore * multiplier * frequencyAdjustment;
+        const priorityScore = Math.min(100, Math.round(rawScore * 2));
+        return { ...bug, priorityScore };
+    });
+}
+
+/** @internal */
+export function _limitAndTagBugs(bugs: Bug[], viewport: string, pageUrl: string, limit: number): Bug[] {
+    return bugs.slice(0, limit).map(b => ({
+        ...b,
+        message: `[${viewport}] ${b.message}`,
+        locationDescription: b.locationDescription
+            ? `${b.locationDescription} (${viewport})`
+            : `Viewport: ${viewport}`,
+        pageUrl,
+        friendlyName: getFriendlyName(b.code)
+    }));
+}
+
+/** @internal */
+export function _groupAccessibilityBugs(bugs: Bug[]): Bug[] {
+    const grouped: Map<string, Bug[]> = new Map();
+    const standalone: Bug[] = [];
+
+    for (const bug of bugs) {
+        if (bug.code === 'A11Y_REGION' || bug.code === 'A11Y_LANDMARK-ONE-MAIN') {
+            const key = bug.code;
+            if (!grouped.has(key)) {
+                grouped.set(key, []);
+            }
+            grouped.get(key)!.push(bug);
+        } else {
+            standalone.push(bug);
+        }
+    }
+
+    const summaryBugs: Bug[] = [];
+    for (const [code, groupBugs] of grouped) {
+        if (groupBugs.length > 0) {
+            const firstBug = groupBugs[0];
+            summaryBugs.push({
+                ...firstBug,
+                message: `${firstBug.message} (${groupBugs.length} occurrences)`,
+                details: `${groupBugs.length} elements violate this rule. ${firstBug.details || ''}`,
+                friendlyName: getFriendlyName(code)
+            });
+        }
+    }
+
+    return [...summaryBugs, ...standalone];
 }

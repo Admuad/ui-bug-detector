@@ -14,7 +14,7 @@ import {
 } from '@/lib/github';
 import type { GitHubScanResult } from '@/lib/github';
 
-export async function scanWebsite(prevState: any, formData: FormData) {
+export async function scanWebsite(prevState: unknown, formData: FormData) {
     const url = formData.get('url') as string;
 
     if (!url) {
@@ -40,13 +40,13 @@ export async function scanWebsite(prevState: any, formData: FormData) {
         // Serialization for client
         return { success: true, data: result };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('SERVER ACTION SCAN ERROR:', error);
-        return { error: `Scan failed: ${error?.message || 'Unknown error'}` };
+        return { error: `Scan failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
 }
 
-export async function crawlWebsite(prevState: any, formData: FormData) {
+export async function crawlWebsite(prevState: unknown, formData: FormData) {
     const url = formData.get('url') as string;
     if (!url) return { error: 'Please submit a valid URL.' };
 
@@ -69,16 +69,16 @@ export async function crawlWebsite(prevState: any, formData: FormData) {
         }, 15, 3); // Web UI: 15 pages, depth 3 (increased from 5/2)
 
         return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Crawl Error:', error);
-        return { error: error.message || 'Crawl failed. Please try again.' };
+        return { error: error instanceof Error ? error.message : 'Crawl failed. Please try again.' };
     }
 }
 
 /**
  * Scan a GitHub repository for UI bugs
  */
-export async function scanGitHubRepo(prevState: any, formData: FormData) {
+export async function scanGitHubRepo(prevState: unknown, formData: FormData) {
     const repoUrl = formData.get('repoUrl') as string;
 
     if (!repoUrl) {
@@ -122,16 +122,16 @@ export async function scanGitHubRepo(prevState: any, formData: FormData) {
         });
 
         return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('GitHub Scan Error:', error);
-        return { error: error.message || 'GitHub scan failed. Please try again.' };
+        return { error: error instanceof Error ? error.message : 'GitHub scan failed. Please try again.' };
     }
 }
 
 /**
  * Save GitHub token securely
  */
-export async function saveGitHubToken(prevState: any, formData: FormData) {
+export async function saveGitHubToken(prevState: unknown, formData: FormData) {
     const token = formData.get('token') as string;
 
     if (!token) {
