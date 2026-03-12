@@ -14,6 +14,13 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type InputMode = 'url' | 'github';
 
+interface GitHubScanResponse {
+    error?: string;
+    rateLimited?: boolean;
+    data?: unknown;
+    success?: boolean;
+}
+
 interface RateLimitInfo {
     allowed: boolean;
     hasToken: boolean;
@@ -66,15 +73,15 @@ export default function Home() {
                 formData.append('repoUrl', repoUrl);
 
                 setScanStatus("Downloading repository...");
-                const response = await scanGitHubRepo(null, formData);
+                const response = await scanGitHubRepo(null, formData) as GitHubScanResponse;
 
                 if (response.error) {
                     setError(response.error);
-                    if ((response as { rateLimited?: boolean }).rateLimited) {
+                    if (response.rateLimited) {
                         setShowTokenModal(true);
                     }
                 } else if (response.data) {
-                    setResult(response.data);
+                    setResult(response.data as ScanResult | CrawlResult);
                 }
                 setScanStatus("");
             } else {

@@ -29,15 +29,20 @@ function formatRemainingTime(seconds: number): string {
     return `${minutes}m`;
 }
 
+function getBannerClassName(rateLimitInfo: RateLimitInfo): string {
+    if (rateLimitInfo.hasToken) {
+        return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400';
+    }
+    if (rateLimitInfo.allowed) {
+        return 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400';
+    }
+    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400';
+}
+
 export function RateLimitBanner({ rateLimitInfo, onAddToken, onRemoveToken }: RateLimitBannerProps) {
     return (
         <div className="w-full max-w-2xl mb-4">
-            <div className={`flex items-center justify-between p-3 rounded-lg text-sm ${rateLimitInfo.hasToken
-                ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                : rateLimitInfo.allowed
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                    : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                }`}>
+            <div className={`flex items-center justify-between p-3 rounded-lg text-sm ${getBannerClassName(rateLimitInfo)}`}>
                 <div className="flex items-center gap-2">
                     {rateLimitInfo.hasToken ? (
                         <>

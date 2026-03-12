@@ -79,7 +79,8 @@ export class Detector {
                         console.log(`[Detector] Network still active, proceeding with scan`);
                     });
                 } catch (navError: unknown) {
-                    console.error(`[Detector] Navigation error:`, navError instanceof Error ? navError.message : navError);
+                    const message = navError instanceof Error ? navError.message : String(navError);
+                    console.error(`[Detector] Navigation error:`, message);
                     throw navError;
                 }
                 totalLoadTime += (Date.now() - startTime);
