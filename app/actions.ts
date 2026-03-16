@@ -14,14 +14,13 @@ import {
 } from '@/lib/github';
 import type { GitHubScanResult } from '@/lib/github';
 
-export async function scanWebsite(prevState: any, formData: FormData) {
+export async function scanWebsite(prevState: unknown, formData: FormData) {
     const url = formData.get('url') as string;
 
     if (!url) {
         return { error: 'Please submit a valid URL.' };
     }
 
-    // Basic URL validation
     let targetUrl = url;
     if (!url.startsWith('http')) {
         targetUrl = `https://${url}`;
@@ -37,16 +36,16 @@ export async function scanWebsite(prevState: any, formData: FormData) {
             checkVisual: true
         });
 
-        // Serialization for client
         return { success: true, data: result };
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('SERVER ACTION SCAN ERROR:', error);
-        return { error: `Scan failed: ${error?.message || 'Unknown error'}` };
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return { error: `Scan failed: ${message}` };
     }
 }
 
-export async function crawlWebsite(prevState: any, formData: FormData) {
+export async function crawlWebsite(prevState: unknown, formData: FormData) {
     const url = formData.get('url') as string;
     if (!url) return { error: 'Please submit a valid URL.' };
 
@@ -61,24 +60,24 @@ export async function crawlWebsite(prevState: any, formData: FormData) {
             checkAccessibility: true,
             checkTypo: true,
             checkVisual: true,
-            // Include tablet for responsive testing
             viewports: [
                 { width: 1440, height: 900, label: 'Desktop' },
                 { width: 768, height: 1024, label: 'Tablet' }
             ]
-        }, 15, 3); // Web UI: 15 pages, depth 3 (increased from 5/2)
+        }, 15, 3);
 
         return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error) {
         console.error('Crawl Error:', error);
-        return { error: error.message || 'Crawl failed. Please try again.' };
+        const message = error instanceof Error ? error.message : 'Crawl failed. Please try again.';
+        return { error: message };
     }
 }
 
 /**
  * Scan a GitHub repository for UI bugs
  */
-export async function scanGitHubRepo(prevState: any, formData: FormData) {
+export async function scanGitHubRepo(prevState: unknown, formData: FormData) {
     const repoUrl = formData.get('repoUrl') as string;
 
     if (!repoUrl) {
@@ -122,16 +121,17 @@ export async function scanGitHubRepo(prevState: any, formData: FormData) {
         });
 
         return { success: true, data: result };
-    } catch (error: any) {
+    } catch (error) {
         console.error('GitHub Scan Error:', error);
-        return { error: error.message || 'GitHub scan failed. Please try again.' };
+        const message = error instanceof Error ? error.message : 'GitHub scan failed. Please try again.';
+        return { error: message };
     }
 }
 
 /**
  * Save GitHub token securely
  */
-export async function saveGitHubToken(prevState: any, formData: FormData) {
+export async function saveGitHubToken(prevState: unknown, formData: FormData) {
     const token = formData.get('token') as string;
 
     if (!token) {
