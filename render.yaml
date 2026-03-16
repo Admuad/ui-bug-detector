@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: ui-bug-detector
+    runtime: docker
+    plan: starter
+    region: oregon
+    autoDeploy: true
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
