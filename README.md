@@ -85,7 +85,18 @@ npx tsx scripts/cli.ts scan https://example.com --output=report --format=both
 
 Since this application uses Playwright (browser automation), **Docker deployment is recommended**. Serverless platforms like Vercel often have size limits that block browser binaries.
 
-### Option 1: Render (Recommended - Free Tier)
+### Option 1: GitHub Codespaces (Recommended - Quick Start)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Admuad/ui-bug-detector)
+
+1. Click the "Open in GitHub Codespaces" button above
+2. Wait for the container to build (~2-3 minutes on first launch)
+3. Once ready, run `npm run dev` in the terminal
+4. The app will be available on the forwarded port 3000
+
+> **Note**: Codespaces includes all dependencies pre-configured including Playwright and Chromium browser.
+
+### Option 2: Render (Recommended - Free Tier)
 1. Fork this repository
 2. Sign up at [render.com](https://render.com)
 3. Create a new **Web Service**
@@ -93,13 +104,13 @@ Since this application uses Playwright (browser automation), **Docker deployment
 5. Select **Docker** as the Runtime
 6. Click **Create Web Service**
 
-### Option 2: Railway
+### Option 3: Railway
 1. Sign up at [railway.app](https://railway.app)
-2. Create a new Project from GitHubRepo
+2. Create a new Project from GitHub Repo
 3. Railway will automatically detect the `Dockerfile`
 4. Deploy!
 
-### Option 3: Vercel (Advanced)
+### Option 4: Vercel (Advanced)
 If you must use Vercel:
 1. Ensure `postinstall` script is enabled (`npx playwright install chromium`)
 2. You may need a **Pro** plan as the Function size (~300MB) often exceeds the Free tier limit (250MB)
