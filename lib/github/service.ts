@@ -3,13 +3,17 @@
  * Downloads and scans GitHub repositories for UI bugs
  */
 
-import { parseGitHubUrl, validateGitHubRepo, getRepoArchiveUrl, getRawFileUrl } from './parser';
+import { parseGitHubUrl, validateGitHubRepo, getRepoArchiveUrl } from './parser';
 import { checkRateLimit, recordScan, getStoredToken } from './rate-limiter';
 import { Detector } from '../detector/engine';
 import { ScanResult, CrawlResult, DetectorConfig } from '../detector/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export interface GitHubScanOptions {
     repoUrl: string;
@@ -187,10 +191,6 @@ export class GitHubService {
      * Extract ZIP file
      */
     private async extractZip(zipPath: string, destDir: string): Promise<void> {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-
         // Use PowerShell on Windows, unzip on Unix
         const isWindows = process.platform === 'win32';
         const command = isWindows

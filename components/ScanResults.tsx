@@ -1,7 +1,7 @@
 'use client';
 
 import { Bug, ScanResult, CrawlResult } from "@/lib/detector/types";
-import { AlertTriangle, CheckCircle, XCircle, Info, Download, ChevronDown, ChevronRight, Globe, Layers, Type, Lightbulb } from "lucide-react";
+import { AlertTriangle, CheckCircle, XCircle, Info, Download, ChevronDown, ChevronRight, Globe } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
