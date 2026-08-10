@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080"),
     title: {
         default: "UI Bug Detector | Automated UI Quality Assurance",
         template: "%s | UI Bug Detector"
