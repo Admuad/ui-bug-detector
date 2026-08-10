@@ -23,11 +23,20 @@ export const metadata: Metadata = {
         siteName: "UI Bug Detector",
         title: "UI Bug Detector | Automated UI Quality Assurance",
         description: "Detect UI bugs, accessibility issues, and visual defects across your entire website.",
+        images: [
+            {
+                url: "/og-image.png",
+                width: 1200,
+                height: 630,
+                alt: "UI Bug Detector Interface Preview",
+            },
+        ],
     },
     twitter: {
         card: "summary_large_image",
-        title: "UI Bug Detector",
+        title: "UI Bug Detector | Automated UI Quality Assurance",
         description: "Detect UI bugs, accessibility issues, and visual defects across your entire website.",
+        images: ["/og-image.png"],
     },
     icons: {
         icon: "/icon.svg",
